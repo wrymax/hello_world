@@ -1,5 +1,8 @@
 class WebhookController < ApplicationController
-  def process
-    binding.pry
+  def index 
+    logger.info "------------------"
+    ap params
+    logger.info "------------------"
+    render plain: params.inspect
   end
 end
