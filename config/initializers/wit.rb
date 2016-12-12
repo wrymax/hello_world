@@ -5,6 +5,7 @@ require 'securerandom'
 
 class Wit
   class Error < StandardError; end
+  attr_accessor :context, :user
 
   WIT_API_HOST = ENV['WIT_URL'] || 'https://api.wit.ai'
   WIT_API_VERSION = ENV['WIT_API_VERSION']  || '20160516'
@@ -27,7 +28,12 @@ class Wit
 
     # pre-define the actions
     @actions = __actions
+
+    # own an user
     @user = opts[:user]
+
+    # context buffer to save return message
+    @context = {response: [], data: []}
     @_sessions = {}
   end
 
@@ -248,7 +254,8 @@ class Wit
         'text' => json['msg'],
         'quickreplies' => json['quickreplies'],
       }
-      @actions[:send].call(request, response)
+      context = @actions[:send].call(request, response)
+      @context[:response].push(context)
     # 获取Wit的回调action，执行这个@actions[action]
     elsif json['type'] == 'action'
       action = json['action'].to_sym
@@ -257,10 +264,14 @@ class Wit
       if context.nil?
         logger.warn('missing context - did you forget to return it?')
         context = {}
+      else
+        @context[:data].push(context)
       end
     else
       raise Error.new("unknown type: #{json['type']}")
     end
+
+    # insert a new context in the buffer
 
     if current_request != @_sessions[session_id]
       return context
@@ -384,10 +395,12 @@ class Wit
         entities = request['entities']
 
         budget_per_night = first_entity_value(entities, 'budget_per_night')
+        binding.pry
         if budget_per_night
             context.delete('missingBudgetPerNight')
             context['budget_per_night'] = budget_per_night
-            context['nights_count'] = @user.nights_count
+            # here is something wrong with the Wit config about "3 nights"...
+            context['nights_count'] = "#{@user.nights_count} nights"
             @user.update_attribute(:budget_per_night, budget_per_night)
         else
             context['missingBudgetPerNight'] = true
@@ -409,4 +422,3 @@ class Wit
     }
   end
 end
-

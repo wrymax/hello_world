@@ -1,11 +1,46 @@
 <html>
   <head>
+    <style>
+      * { color: #666; font-family: PingFang SC,Lantinghei SC,Helvetica Neue,Helvetica,Arial,Microsoft YaHei,\\5FAE\8F6F\96C5\9ED1,STHeitiSC-Light,simsun,\\5B8B\4F53,WenQuanYi Zen Hei,WenQuanYi Micro Hei,'sans-serif'; }
+      input[type="text"] {
+        height: 30px; width: 250px;
+      }
+      li { line-height: 26px; }
+      a { text-decoration: none; }
+    </style>
   </head>
   <body>
-    Hello World Bot Demo
+    <h1><a href="/webhook">Hello World Bot Demo</a></h1>
+    <hr />
 
+    <h3>User Info: </h3>
+    <p>
+      Location: <%= @user.location %>
+    </p>
+    <p>
+      Start From: <%= @user.datetime %>
+    </p>
+    <p>
+      Duration: <%= @user.nights_count %> nights
+    </p>
+    <p>
+      Budget per night: $<%= @user.budget_per_night %>
+    </p>
+
+    <hr/>
+    <% if @responses  %>
+    <h4>Bot says: </h4>
+    <ol>
+    <% @responses.each_with_index do |value, index| %>
+      <li><%= value %></li>
+    <% end %>
+    </ol>
+    <% end %>
     <div>
-      Speak to bot: 
+      <form action="send_message" method="get">
+        <input type="text" name="message" />
+        <input type="submit" value="Talk with Bot" />
+      </form>
     </div>
   </body>
 </html>
