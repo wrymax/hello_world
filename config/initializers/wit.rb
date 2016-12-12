@@ -11,8 +11,11 @@ class Wit
   DEFAULT_MAX_STEPS = 5
   LEARN_MORE = 'Learn more at https://wit.ai/docs/quickstart'
 
+  # default app access_token
+  ACCESS_TOKEN = 'JXVYOWKYSALWMULHVNLRUTZ4XU6HGYPV'
+
   def initialize(opts = {})
-    @access_token = opts[:access_token]
+    @access_token = opts[:access_token] || ACCESS_TOKEN
 
     if opts[:logger]
       @logger = opts[:logger]
@@ -327,6 +330,7 @@ class Wit
     return {
       send: -> (request, response) {
         puts("sending... #{response['text']}")
+        return response
       },
       getLocation: -> (request) {
         context = request['context']

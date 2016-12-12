@@ -1,8 +1,13 @@
 class WebhookController < ApplicationController
   def index 
-    logger.info "------------------"
-    ap params
-    logger.info "------------------"
-    render plain: params.inspect
+  end
+
+  def send
+    if params[:message].blank?
+      redirect_to :back, notice: "Please send a message!"
+    else
+      wit = Wit.new(user: User.first)
+      ret = wit.send(params[:message])
+    end
   end
 end
