@@ -24,7 +24,7 @@ class Wit
 
     # pre-define the actions
     @actions = __actions
-
+    @user = opts[:user]
     @_sessions = {}
   end
 
@@ -84,9 +84,16 @@ class Wit
   end
 
   # for controller to interact with Wit
-  def send(session_id, msg, context={}, max_steps=DEFAULT_MAX_STEPS)
+  def send(msg, context={}, max_steps=DEFAULT_MAX_STEPS)
     if !@actions
       throw_must_have_actions
+    end
+
+    if @user.session_id
+      session_id = @user.session_id
+    else
+      session_id = SecureRandom.uuid
+      @user.update_attribute(:session_id, session_id)
     end
 
     begin
@@ -309,6 +316,13 @@ class Wit
     return actions
   end
 
+  def first_entity_value(entities, entity)
+    return nil unless entities.has_key? entity
+    val = entities[entity][0]['value']
+    return nil if val.nil?
+    return val.is_a?(Hash) ? val['value'] : val
+  end
+
   def __actions
     return {
       send: -> (request, response) {
@@ -321,7 +335,7 @@ class Wit
         loc = first_entity_value(entities, 'location')
         if loc
             context.delete('missingLocation')
-            customer['loc'] = loc
+            @user.update_attribute(:location, loc)
             context['location'] = loc
         else
             context['missingLocation'] = true
@@ -336,7 +350,7 @@ class Wit
         datetime = first_entity_value(entities, 'datetime')
         if datetime
             context.delete('missingDatetime')
-            customer['datetime'] = datetime
+            @user.update_attribute(:datetime, datetime)
             context['datetime'] = datetime
         else
             context['missingDatetime'] = true
@@ -352,7 +366,7 @@ class Wit
         nights_count = first_entity_value(entities, 'nights_count')
         if nights_count
             context.delete('missingNightsCount')
-            customer['nights_count'] = nights_count
+            @user.update_attribute(:nights_count, nights_count)
             context['nights_count'] = nights_count
         else
             context['missingNightsCount'] = true
@@ -369,7 +383,8 @@ class Wit
         if budget_per_night
             context.delete('missingBudgetPerNight')
             context['budget_per_night'] = budget_per_night
-            context['nights_count'] = customer['nights_count']
+            context['nights_count'] = @user.nights_count
+            @user.update_attribute(:budget_per_night, budget_per_night)
         else
             context['missingBudgetPerNight'] = true
         end
@@ -382,6 +397,8 @@ class Wit
         entities = request['entities']
 
         puts 'Session finished, start smartly arrangement!'
+        @user.session_id = nil
+        @user.save
 
         return context
       },
