@@ -1,0 +1,17 @@
+# Read about fixtures at http://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  fb_id: MyString
+  session_id: MyString
+  location: MyString
+  datetime: 2016-12-12 23:17:26
+  nights_count: 1
+  budget_per_night: 1.5
+
+two:
+  fb_id: MyString
+  session_id: MyString
+  location: MyString
+  datetime: 2016-12-12 23:17:26
+  nights_count: 1
+  budget_per_night: 1.5
