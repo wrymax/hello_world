@@ -22,4 +22,4 @@ test:
 
 production:
   <<: *default
-  database: db/hello_world.production.sqlite3
+  database: db/hello_world.development.sqlite3

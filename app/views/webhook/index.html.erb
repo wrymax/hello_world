@@ -37,10 +37,20 @@
     </ol>
     <% end %>
     <div>
-      <form action="send_message" method="get">
+      <% unless @user.finished? %>
+      <form action="send_message" method="get" onSubmit="document.getElementById('s_btn').disabled=true;document.getElementById('s_btn').value='talking...'">
         <input type="text" name="message" />
-        <input type="submit" value="Talk with Bot" />
+        <input type="submit" value="Talk with Bot" id="s_btn" />
       </form>
+      <% else %>
+        <h4>Everthing is collected. Then it will start arranging the travel.</h4>
+        <a href="/reset">>>Test the Use Case Again</a>
+      <% end %> 
     </div>
   </body>
+  <script type="txt/javascript">
+    function submit() {
+      
+    }
+  </script>
 </html>

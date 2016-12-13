@@ -1,6 +1,14 @@
 class WebhookController < ApplicationController
+  skip_before_action :verify_authenticity_token
+
   def index 
     @user = User.first
+  end
+
+  def bot
+    #if params['hub.mode'] == 'subscribe' && params['hub.verify_token'] == 'hello_world'
+    #  render plain: params['hub.challenge']
+    #end
   end
 
   def send_message
@@ -25,5 +33,10 @@ class WebhookController < ApplicationController
     end
 
     render :index
+  end
+
+  def reset
+    User.first.update_attributes(datetime:nil, location:nil, nights_count:nil, budget_per_night:nil)
+    redirect_to "/webhook"
   end
 end

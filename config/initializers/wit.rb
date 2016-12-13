@@ -395,7 +395,6 @@ class Wit
         entities = request['entities']
 
         budget_per_night = first_entity_value(entities, 'budget_per_night')
-        binding.pry
         if budget_per_night
             context.delete('missingBudgetPerNight')
             context['budget_per_night'] = budget_per_night
