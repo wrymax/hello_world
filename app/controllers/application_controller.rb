@@ -8,7 +8,7 @@ class ApplicationController < ActionController::Base
     return @current_user if @current_user
 
     if params['entry']
-      fb_id = params['entry']['messaging'][0]['sender']['id']
+      fb_id = params['entry'][0]['messaging'][0]['sender']['id']
       if user = User.find_by_fb_id(fb_id)
         @current_user = user
       else
