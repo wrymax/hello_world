@@ -6,6 +6,8 @@ class WebhookController < ApplicationController
   end
 
   def bot
+    messenger_bot_id = '631366967034247'
+
     # for webhook verification
     #if params['hub.mode'] == 'subscribe' && params['hub.verify_token'] == 'hello_world'
     #  render plain: params['hub.challenge']
@@ -23,31 +25,41 @@ class WebhookController < ApplicationController
     ############################################
 
     # send msg to Wit
-    logger.info "=== current_user: #{current_user.fb_id}"
     wit = Wit.new(user: current_user)
-    context = {}
-    %W(datetime location nights_count budget_per_night).each do |column|
-      context[column.to_sym] = current_user.send(column) unless current_user.send(column).blank?
-    end
-    logger.info "=== send to Wit..."
-    wit.send(params[:message], context)
+    # context = {}
 
-    # get feedback from Wit
-    logger.info "=== response from Wit..."
-    responses = wit.context[:response].map{|x| x['text']}
+    #%W(datetime location nights_count budget_per_night amenities).each do |column|
+    #  context[column.to_sym] = current_user.send(column) unless current_user.send(column).blank?
+    #end
 
-    # save the info into database
-    wit.context[:data].each do |data|
-      data.each_pair do |key, value|
-       current_user.send("#{key}=", value) if current_user.respond_to? key
+    message_folder = params['entry'][0]['messaging'][0]['message']
+    recipient_id = params['entry'][0]['messaging'][0]['recipient']['id']
+
+    if message_folder && recipient_id == messenger_bot_id
+      message = message_folder['text']
+      logger.info "=== send MSG to Wit...: #{message}"
+      logger.info "--- context buffer: #{current_user.wit_context}"
+      wit.send(message)
+
+      # get feedback from Wit
+      logger.info "=== response from Wit..."
+      responses = wit.context[:response].map{|x| x['text']}
+
+      # save the info into database
+      wit.context[:data].each do |data|
+        data.each_pair do |key, value|
+          current_user.send("#{key}=", value) if current_user.respond_to? key
+        end
       end
+      logger.info "=== save user..."
+      current_user.save
+	    
+      # send info back to Messenger
+      logger.info "=== send to FB..."
+      send_message_to_user(responses)
     end
-    logger.info "=== save user..."
-    current_user.save
-    
-    # send info back to Messenger
-    logger.info "=== send to FB..."
-    send_message_to_user(responses)
+
+    render plain: 'OK', status: 200
   end
 
   def send_message
@@ -55,7 +67,7 @@ class WebhookController < ApplicationController
       redirect_to :back, notice: "Please send a message!"
     else
       @user = User.first
-      wit = Wit.new(user: @user)
+      # wit = Wit.new(user: @user, logger: logger)
       context = {}
       %W(datetime location nights_count budget_per_night).each do |column|
         context[column.to_sym] = @user.send(column) unless @user.send(column).blank?
@@ -100,9 +112,6 @@ class WebhookController < ApplicationController
 
   # send message to Facebook Messenger
   def call_send_api(msg)
-    logger.info "------ send message to facebook: "
     ret = Faraday.post("https://graph.facebook.com/v2.6/me/messages", msg)
-    logger.info ret
-    logger.info "------ send end ----- "
   end
 end

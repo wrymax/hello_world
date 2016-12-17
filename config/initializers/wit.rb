@@ -5,7 +5,7 @@ require 'securerandom'
 
 class Wit
   class Error < StandardError; end
-  attr_accessor :context, :user
+  attr_accessor :context, :user, :logger
 
   WIT_API_HOST = ENV['WIT_URL'] || 'https://api.wit.ai'
   WIT_API_VERSION = ENV['WIT_API_VERSION']  || '20160516'
@@ -107,7 +107,10 @@ class Wit
 
     begin
       # run_actions
-      context = run_actions(session_id, msg, context, max_steps)
+      # context = run_actions(session_id, msg, context, max_steps)
+    
+      # use @context_buffer instead
+      context = run_actions(session_id, msg, @user.wit_context, max_steps)
     rescue Error => exp
       logger.error("error: #{exp.message}")
     end
@@ -344,13 +347,15 @@ class Wit
         return response
       },
       getLocation: -> (request) {
+        logger.info "\n *** Calling getLocation ***"
         context = request['context']
         entities = request['entities']
 
         loc = first_entity_value(entities, 'location')
         if loc
             context.delete('missingLocation')
-            @user.update_attribute(:location, loc)
+            @user.update_attributes(:location => loc)
+            @user.save_context_buffer(location: loc)
             context['location'] = loc
         else
             context['missingLocation'] = true
@@ -359,14 +364,17 @@ class Wit
         return context
       },
       getArriveDate: -> (request) {
+        logger.info "\n *** Calling getArriveDate ***"
         context = request['context']
         entities = request['entities']
 
         datetime = first_entity_value(entities, 'datetime')
         if datetime
             context.delete('missingDatetime')
+            datetime = datetime.match(/\d+-\d+-\d+/).to_s
             @user.update_attribute(:datetime, datetime)
             context['datetime'] = datetime
+            @user.save_context_buffer(datetime: datetime)
         else
             context['missingDatetime'] = true
         end
@@ -375,14 +383,18 @@ class Wit
         return context
       },
       getNights: -> (request) {
+        logger.info "\n *** Calling getNights ***"
         context = request['context']
         entities = request['entities']
 
-        nights_count = first_entity_value(entities, 'nights_count')
+        nights_count = first_entity_value(entities, 'nights_count') || first_entity_value(entities, 'number')
+        nights_count = nights_count.to_i.to_s
+
         if nights_count
             context.delete('missingNightsCount')
             @user.update_attribute(:nights_count, nights_count)
             context['nights_count'] = nights_count
+            @user.save_context_buffer(nights_count: nights_count)
         else
             context['missingNightsCount'] = true
         end
@@ -391,16 +403,18 @@ class Wit
       },
 
       getBudgetPerNight: -> (request) {
+        logger.info "\n *** Calling getNights ***"
         context = request['context']
         entities = request['entities']
 
-        budget_per_night = first_entity_value(entities, 'budget_per_night')
+        budget_per_night = first_entity_value(entities, 'budget_per_night') || first_entity_value(entities, 'number')
         if budget_per_night
             context.delete('missingBudgetPerNight')
             context['budget_per_night'] = budget_per_night
             # here is something wrong with the Wit config about "3 nights"...
             context['nights_count'] = "#{@user.nights_count} nights"
             @user.update_attribute(:budget_per_night, budget_per_night)
+            @user.save_context_buffer(budget_per_night: budget_per_night)
         else
             context['missingBudgetPerNight'] = true
         end
@@ -408,16 +422,28 @@ class Wit
         return context
       },
 
-      finishSession: -> (request) {
+      getAmenities: -> (request) {
+        logger.info "\n *** Calling getAmenities ***"
+        ap "\n *** Calling getAmenities ***"
         context = request['context']
         entities = request['entities']
+        amenities = entities['amenities'].map{|e| e['value']}.join(', ')
 
-        puts 'Session finished, start smartly arrangement!'
-        @user.session_id = nil
-        @user.save
+        if amenities 
+            context.delete('missingAmenities')
+            @user.update_attribute(:amenities, amenities)
+            context['amenities'] = amenities
+            # clean session
+            @user.session_id = nil
+            @user.save
+            # @user.save_context_buffer(amenities: amenities)
+            @user.clean_context_buffer # clean context buffer when the last action is finished
+        else
+            context['missingAmenities'] = true
+        end
 
         return context
-      },
+      }
     }
   end
 end

@@ -1,8 +1,7 @@
 class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
 
-
-  helper_method :current_user
+  helper_method :current_user#, :wit
 
   def current_user
     return @current_user if @current_user
@@ -18,4 +17,17 @@ class ApplicationController < ActionController::Base
 
     return @current_user
   end
+
+=begin
+  # a shared wit instance for a session
+  def wit
+    @wit = session[:wit] 
+    unless @wit
+      @wit = Wit.new(user: current_user)
+      session[:wit] = @wit
+    end
+    return @wit
+  end
+=end
+
 end
